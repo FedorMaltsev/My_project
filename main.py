@@ -14,7 +14,7 @@ def Value_or_NULL(value):   #Выдать NULL, если в таблице эт�
     else:
         return value
 
-def checkTable(dbcon, tablename):
+def checkTable(dbcon, tablename):  #Это было стырено
     dbcur = dbcon.cursor()
     dbcur.execute(
         """
@@ -28,6 +28,9 @@ def checkTable(dbcon, tablename):
 
     dbcur.close()
     return False
+
+def open_table():
+    pass
 
 try:
     connection = psycopg2.connect(
@@ -44,27 +47,34 @@ try:
     #     )
     #     print(f"Серверок у нас: {cursor.fetchone()}")
 
-    name_file = 'таблица_после_ереси'#input('Введите название файла: ') #  Ввод данных из экселя
+    name_file_1 = 'C:/Users/cheog/Desktop/таблица_после_ереси'#input('Введите адрес и название архива: ') #  Ввод данных из экселя
     try: #              Двумерный массив с данными. Нулевая строка содержит названия столбцов
-        file_table = openpyxl.open(f'C:/Users/cheog/Desktop/{name_file}.xlsx', read_only=True).active
-        table_list = [[str(file_table[i][j].value) for j in range(0, file_table.max_column)] for i in
+        file_table = openpyxl.open(f'{name_file_1}.xlsx', read_only=True).active
+        table_list_1 = [[str(file_table[i][j].value) for j in range(0, file_table.max_column)] for i in
                       range(1, file_table.max_row + 1)]
-        for row in table_list:
+        for row in table_list_1:
             if ' 00:00:00' in row[2]:
                 row[2] = row[2].replace(' 00:00:00', '')
                 row[2] = row[2].split('-')[2] + '-' + row[2].split('-')[1] + '-' + row[2].split('-')[0]
-        # for rows in table_list:
-        #     print(rows)
-
     except Exception as ex:
         print('Такой файл не найден', ex)
 
-    with connection.cursor() as cursor:
-        name_table = 'after_the_heresy'#input('Введите название таблы')
-        if checkTable(connection,name_table) != True:
+    name_file_2 = 'C:/Users/cheog/Desktop/таблица_до_ереси'  # input('Введите адрес и название архива: ') #  Ввод данных из экселя
+    try:  # Двумерный массив с данными. Нулевая строка содержит названия столбцов
+        file_table = openpyxl.open(f'{name_file_2}.xlsx', read_only=True).active
+        table_list_2 = [[str(file_table[i][j].value) for j in range(0, file_table.max_column)] for i in
+                      range(1, file_table.max_row + 1)]
+        # for rows in table_list:
+        #     print(rows)
+    except Exception as ex:
+        print('Такой файл не найден', ex)
+
+    with connection.cursor() as cursor: # Создание таблицы "ПОСЛЕ ереси"
+        name_table_1 = 'after_the_heresy'#input('Введите название таблы')
+        if checkTable(connection, name_table_1) != True:
             cursor.execute(
                 f"""
-                CREATE TABLE {name_table}(
+                CREATE TABLE {name_table_1}(
                 name_order VARCHAR(40),
                 name_primarch VARCHAR(40),
                 date_of_found DATE,
@@ -75,13 +85,26 @@ try:
                 """
             )
         else:
-            print(f'Таблица {name_table} найдена')
+            print(f'Таблица {name_table_1} найдена')
 
 
+    with connection.cursor() as cursor: # Создание таблицы "ДО ереси"
+        name_table_2 = 'before_the_heresy'#input('Введите название таблы')
+        if checkTable(connection, name_table_2) != True:
+            cursor.execute(
+                f"""
+                CREATE TABLE {name_table_2}(
+                name_order VARCHAR(40),
+                number INT PRIMARY KEY
+                );
+                """
+            )
+        else:
+            print(f'Таблица {name_table_2} найдена')
 
 
-    with connection.cursor() as cursor:
-        for row in table_list[1:]:
+    with connection.cursor() as cursor: #Заполнение таблицы ПОСЛЕ ереси
+        for row in table_list_1[1:]:
             cursor.execute(
                 f"""
                 INSERT INTO after_the_heresy(name_order, name_primarch, date_of_found, loyalty, number, home_world) VALUES
@@ -96,6 +119,17 @@ try:
             )
         print('У нас пополнение')
 
+    with connection.cursor() as cursor: #Заполнение таблицы ДО ереси
+        for row in table_list_2[1:]:
+            cursor.execute(
+                f"""
+                INSERT INTO after_the_heresy(name_order, number) VALUES
+                ('{row[0]}',
+                 '{row[1]}'
+                 );
+                """
+            )
+        print('У нас пополнение')
 
     # with connection.cursor() as cursor:
     #     cursor.execute(
