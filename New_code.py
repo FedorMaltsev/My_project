@@ -8,15 +8,28 @@ print('PYYYYYYYYYYYYYSSSSSSSKKKKKKAAAAAAAAA')
 
 def select_one(selected_table):
     try:
-        row, value = input('Имя поля: '), input('Значение поля: ')
-        if row not in ('name_order', 'name_primarch', 'date_of_found', 'loyalty', 'number', 'home_world'):
-            0 / 0 #  Да, это костыльный способ не дать пройти некорректному названию поля
+        print('По какому аргументу вам нужна сводка?')
+        if selected_table == name_table_1:
+            print(f"""  1 - name_order
+                        2 - number
+                        3 - date_of_found
+                        4 - loyalty
+                        5 - name_primarch
+                        6 - home_world""")
+            ind = input()
+        else:
+            print(f"""  1 - name_order
+                        2 - number""")
+            ind = input() # Находится здесь, так как разная проверка на корректность
+
+        column = { 1 : 'name_order', 2 : 'number', 3 : 'date_of_found', 4 : 'loyalty', 5 : 'name_primarch', 6 : 'home_world' }
+        value = input(f'Введите значение {column[ind]}: ')
         with connection.cursor() as cursor:
             cursor.execute(
                 f"""
                 SELECT *
                 FROM {selected_table}
-                where {row} = {value}
+                where {column[ind]} = {value}
                 """
             )
             for row in cursor.fetchall():
@@ -30,4 +43,4 @@ connection = psycopg2.connect(
         password=password,
         database=db_name
     )
-    connection.autocommit = True
+connection.autocommit = True

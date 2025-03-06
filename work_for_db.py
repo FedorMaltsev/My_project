@@ -14,35 +14,63 @@ def select_all(selected_table):                 #Вывод всей базы
         for row in cursor.fetchall():
             print(*row)
 
-def select_one(selected_table):        #Вывод по одному конкретному полю (определённая сводка)
-    try:
-        row, value = input('Имя поля: '), input('Значение поля: ')
-        if row not in ('name_order', 'name_primarch', 'date_of_found', 'loyalty', 'number', 'home_world'):
-            0 / 0 #  Да, это костыльный способ не дать пройти некорректному названию поля
-        with connection.cursor() as cursor:
-            cursor.execute(
-                f"""
-                SELECT *
-                FROM {selected_table}
-                where {row} = {value}
-                """
-            )
-            for row in cursor.fetchall():
-                print(row)
-    except:
-        print('чел...')
+def for_select_one(selected_table, column, value): # Вынесено в отдельную функцию (эту), так как пригодится в других
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""
+            SELECT *
+            FROM {selected_table}
+            where {column} = {value}
+            """
+        )
+        return cursor.fetchall()
 
-def for_change_value(selected_table, name_columns): # Во избежание дублирования кода, функция для change_value
+def select_one(selected_table):
+    try:
+        print('По какому аргументу вам нужна сводка?')
+        if selected_table == name_table_1:
+            print(f"""  1 - name_order
+                        2 - number
+                        3 - date_of_found
+                        4 - loyalty
+                        5 - name_primarch
+                        6 - home_world""")
+            ind = int(input())
+        else:
+            print(f"""  1 - name_order
+                        2 - number""")
+            ind = int(input())  # Находится здесь, так как разная проверка на корректность
+
+        column = { 1 : 'name_order', 2 : 'number', 3 : 'date_of_found', 4 : 'loyalty', 5 : 'name_primarch', 6 : 'home_world' }
+        value = input(f'Введите значение {column[ind]}: ')
+        for row in for_select_one(selected_table, column[ind], value):
+            print(row)
+        # with connection.cursor() as cursor:
+        #     cursor.execute(
+        #         f"""
+        #         SELECT *
+        #         FROM {selected_table}
+        #         where {column[ind]} = {value}
+        #         """
+        #     )
+        #     for row in cursor.fetchall():
+        #         print(row)
+    except Exception as ex:
+        print(ex, '\nМоя ошибка не повод ругаться, лучше помоги мне стать лучше')
+
+def for_change_value(selected_table, name_columns, number): # Во избежание дублирования кода, функция для change_value
+    old_values_tuple = for_select_one(selected_table, 'number', number)[0] # Кортеж со старыми значениями, для удобства пользователя. [0] нужен из-за того, что cursor.fetchall() возвращает список кортежей
+    old_values_dict = { name_columns[i] : str(old_values_tuple[i]) for i in range(0, len(name_columns)) } # Приходится идти таким путём, чтобы не вызывать select на каждой итерации
     for key in name_columns:
         new_elem = input(
-            f'Нажмите ENTR, чтобы оставить старое значение. Перезапись {key}, введите новое значение/информацию: ').strip()
+            f'Перезапись {key}, нажмите ENTR, чтобы оставить значение {old_values_dict[key]}. Введите новое значение/информацию: ').strip()
         if new_elem != '':  # Вводим пустую строку, если хотим оставить старое значение
             with connection.cursor() as cursor:
                 cursor.execute(
                     f"""
                     UPDATE {selected_table}
                     set {key} = {new_elem}
-                    where {selected_table}.number = {id}
+                    where {selected_table}.number = {number}
                     """
                 )
                 for row in cursor.fetchall():
@@ -50,7 +78,7 @@ def for_change_value(selected_table, name_columns): # Во избежание д
 
 def change_value(selected_table): # Изменение поля по номеру легиона
     try:
-        id = input('Введите номер легиона: ')
+        number = input('Введите номер легиона: ')
 
         # with connection.cursor() as cursor:
         #     cursor.execute(
@@ -68,12 +96,12 @@ def change_value(selected_table): # Изменение поля по номер�
         name_columns_after_heresy = ('name_order', 'name_primarch', 'date_of_found', 'loyalty', 'number', 'home_world')
         name_columns_before_heresy = ('name_order', 'number')
         if selected_table == name_table_1: # В зависимости от того, какая таблица выбрана основной
-            for_change_value(selected_table, name_columns_after_heresy)
+            for_change_value(selected_table, name_columns_after_heresy, number)
         else:
-            for_change_value(selected_table, name_columns_before_heresy)
+            for_change_value(selected_table, name_columns_before_heresy, number)
 
-    except:
-        print('чел...')
+    except Exception as ex:
+        print(ex, '\nМоя ошибка не повод ругаться, лучше помоги мне стать лучше')
 
 
 def insert_value_after_heresy(selected_table): # Добавление топорное, требуется куча проверок полей, пока добавит только верные данные
@@ -129,10 +157,12 @@ def insert_value_before_heresy(selected_table): # Добавление топо�
 
 
 
-def swap(name_1, name_2, selected_table): # Переключает на другую таблицу
+def swap(name_1, name_2, selected_table): # Для переключения на другую таблицу
     if name_1 == selected_table:
+        print(f'Выбран архив {name_2}')
         return name_2
     else:
+        print(f'Выбран архив {name_1}')
         return name_1
 
 
@@ -148,24 +178,28 @@ try:
     # os.system('python main.py') # Считать нужные файлы эксель, открыть и заполнить таблицы
     print('Здесь будет проводиться работа с таблицей.')
     selected_table = name_table_1
-    swith_dict = { 1 : select_all, 2 : select_one, 3 : change_value, 4 : insert_value_after_heresy if selected_table == name_table_1 else insert_value_before_heresy, 5 : 5, 6 : 6, 7 : 7, 8 : 8, 9 : 9 }
+    swith_dict = { 1 : select_all, 2 : select_one, 3 : change_value, 4 : insert_value_after_heresy if selected_table == name_table_1 else insert_value_before_heresy, 5 : 5, 6 : 6, 7 : 7, 9 : 9 }
     while True:
         try:
             print('Архив Империума выполнит ваш запрос. Или вызовет стражей.')
-            print(f"""          1 - вывести весь архив\n
-            2 - вывести определенную сводку\n
-            3 - изменить запись в архиве\n
-            4 - добавить новую запись в архив\n
-            5 - удалить запись из архива\n
-            6 - увидеть изменения в названих легионов за 10 веков\n
-            7 - вывести всю историю\n
-            8 - переключить на архив {name_table_2 if selected_table == name_table_1 else name_table_1}\n
+            print(f"""             
+            1 - вывести весь архив
+            2 - вывести определенную сводку
+            3 - изменить запись в архиве
+            4 - добавить новую запись в архив
+            5 - удалить запись из архива
+            6 - увидеть изменения в названих легионов за 10 веков
+            7 - вывести всю историю
+            8 - переключить на архив {name_table_2 if selected_table == name_table_1 else name_table_1}
             9 - закрыть архив""")
             command = int(input())
-            if command == 8:
-                selected_table = swap(name_table_1, name_table_2, selected_table)
-            else:
+            if command in (1, 2, 3, 4, 5, 6, 7):
                 swith_dict[command](selected_table)
+            elif command == 8:
+                selected_table = swap(name_table_1, name_table_2, selected_table)
+            elif command == 9:
+                print('Работа завершена, архив закрыт')
+                break
 
         except Exception as ex:
             print(ex, '\nМоя ошибка не повод ругаться, лучше помоги мне стать лучше')
